@@ -1,0 +1,327 @@
+Imports Excel = Microsoft.Office.Interop.Excel
+
+Imports System.Data.DataTable
+
+Imports Microsoft.Office.Interop
+
+Public Class Form1
+
+ 
+
+    Private Sub validation_Click(sender As Object, e As EventArgs) Handles validation.Click
+
+        Dim SvcNo As String
+
+        Dim mapp As String
+
+        Dim dataSheetPath As String
+
+        Dim mappWorkbook As Microsoft.Office.Interop.Excel.Workbook
+
+        Dim oExcel As Microsoft.Office.Interop.Excel.Application
+
+        Dim mapSheet As Microsoft.Office.Interop.Excel.Worksheet
+
+        Dim ReqSheet As Microsoft.Office.Interop.Excel.Worksheet
+
+        Dim ResultSheet As Microsoft.Office.Interop.Excel.Workbook
+
+        Dim esbCol, sizemap, mapcol, sizeESB As Integer
+
+        Dim ESBworkbook As Microsoft.Office.Interop.Excel.Workbook
+
+        Dim backendworkbook As Microsoft.Office.Interop.Excel.Workbook
+
+        Dim ESBsheet As Microsoft.Office.Interop.Excel.Worksheet
+
+        Dim BackendSheet As Microsoft.Office.Interop.Excel.Worksheet
+
+        Dim esbfield As String
+
+        Dim esbfieldinResult As String
+
+ 
+
+ 
+
+        oExcel = New Microsoft.Office.Interop.Excel.Application()
+
+        oExcel.SheetsInNewWorkbook = 1
+
+        oExcel.DisplayAlerts = False
+
+        oExcel.Visible = False
+
+ 
+
+        SvcNo = serName.Text
+
+        dataSheetPath = xmllocation.Text
+
+        mapp = mapSheet.Text
+
+        '----------------------------- 
+
+        'opening mapping sheet
+
+        mappWorkbook = oExcel.Workbooks.Open(dataSheetPath & "\" & "Mapping sheet Template.xlsx")
+
+        mapSheet = mappWorkbook.Sheets("Mapping sheet")
+
+        '   MsgBox("mapping sheet open")
+
+        'no of rows
+
+        With mapSheet
+
+            sizemap = .Range("A" & .Rows.Count).End(Excel.XlDirection.xlUp).Row
+
+        End With
+
+        '  MsgBox(sizemap)
+
+        'Copying the template format into result sheet
+
+        ''Add file copy here later
+
+        'opening result sheet
+
+        ResultSheet = oExcel.Workbooks.Open(dataSheetPath & "\" & "Template2.xlsx")
+
+        ReqSheet = ResultSheet.Sheets("Comparison results")
+
+ 
+
+        'transferring data from Mapping sheet to result sheet
+
+        'ESB
+
+        ReqSheet.Range("A2", "A30").Value = mapSheet.Range("A2", "A30").Value
+
+        ' MsgBox("copied ESB names")
+
+        'Backend
+
+        ReqSheet.Range("C2", "C30").Value = mapSheet.Range("C2", "C30").Value
+
+        '  MsgBox("copied backend names")
+
+ 
+
+        '-------------------------------------------------------------------------------
+
+        'match ESB field name and backend field name from test data sheet to result sheet and put the values
+
+ 
+
+ 
+
+        ' ESB Request
+
+        ESBworkbook = oExcel.Workbooks.Open(dataSheetPath & "\" & ESBRequest.Text)
+
+        ESBsheet = ESBworkbook.Sheets("OUTPUT")
+
+        With ESBsheet
+
+            sizeESB = .Range("A" & .Rows.Count).End(Excel.XlDirection.xlUp).Row
+
+        End With
+
+        sizeESB = sizeESB - 135
+
+ 
+
+        For mapcol = 2 To sizemap
+
+            esbfieldinResult = ReqSheet.Cells(mapcol, 1).Value
+
+            '     MsgBox(esbfieldinResult)
+
+ 
+
+            '    MsgBox(sizeESB)
+
+            For esbCol = 3 To sizeESB
+
+                esbfield = ESBsheet.Cells(esbCol, 1).Value
+
+                If (esbfieldinResult = esbfield) Then
+
+                    '        MsgBox("match found")
+
+                    ReqSheet.Cells(mapcol, 2).Value = ESBsheet.Cells(esbCol, 2).Value
+
+                End If
+
+            Next
+
+        Next
+
+        'backend        
+
+        backendworkbook = oExcel.Workbooks.Open(dataSheetPath & "\" & backendRequest.Text)
+
+        BackendSheet = backendworkbook.Sheets("OUTPUT")
+
+        With BackendSheet
+
+            '       sizeback = .Range("A" & .Rows.Count).End(Excel.XlDirection.xlUp).Row
+
+        End With
+
+        '    MsgBox(sizeback)
+
+        For mapcol = 2 To sizemap
+
+            esbfieldinResult = ReqSheet.Cells(mapcol, 3).Value
+
+            '  MsgBox(esbfieldinResult)
+
+            For esbCol = 3 To sizeESB
+
+                esbfield = BackendSheet.Cells(esbCol, 1).Value
+
+                If (esbfieldinResult = esbfield) Then
+
+                    ' MsgBox("match found")
+
+                    ReqSheet.Cells(mapcol, 4).Value = BackendSheet.Cells(esbCol, 2).Value
+
+                End If
+
+            Next
+
+        Next
+
+        '-------------------------------------------------------------------------
+
+        'checking transformation rule
+
+        For mapcol = 2 To sizemap
+
+            'MOVE
+
+            '  MsgBox(mapSheet.Cells(mapcol, 2).Value)
+
+            If (mapSheet.Cells(mapcol, 2).Value = "Move") Then
+
+                If (ReqSheet.Cells(mapcol, 2).Value = ReqSheet.Cells(mapcol, 4).Value) Then
+
+                    ReqSheet.Cells(mapcol, 5).Value = "Mapped"
+
+                End If
+
+                If (ReqSheet.Cells(mapcol, 2).Value <> ReqSheet.Cells(mapcol, 4).Value) Then
+
+                    ReqSheet.Cells(mapcol, 5).Value = "Mapping issue"
+
+                End If
+
+ 
+
+            End If
+
+            'BOOLEAN
+
+            If (mapSheet.Cells(mapcol, 2).Value = "Boolean") Then
+
+ 
+
+                If (ReqSheet.Cells(mapcol, 2).Value = "Y") Then
+
+                    If (ReqSheet.Cells(mapcol, 4).Value = "true") Then
+
+                        ReqSheet.Cells(mapcol, 5).Value = "Mapped boolean"
+
+                    Else
+
+                        If (ReqSheet.Cells(mapcol, 4).Value = "false") Then
+
+                            ReqSheet.Cells(mapcol, 5).Value = "Invalid value at backend"
+
+                        End If
+
+                        If (ReqSheet.Cells(mapcol, 2).Value IsNot
+
+                            "Y" And ReqSheet.Cells(mapcol, 4).Value = "true") Then
+
+                            ReqSheet.Cells(mapcol, 5).Value = "Invalid value at ESB"
+
+                        End If
+
+                    End If
+
+                End If
+
+                If (ReqSheet.Cells(mapcol, 2).Value = "N") Then
+
+                    If (ReqSheet.Cells(mapcol, 4).Value = "false") Then
+
+                        ReqSheet.Cells(mapcol, 5).Value = "Mapped boolean"
+
+                    Else
+
+                        If (ReqSheet.Cells(mapcol, 4).Value = "true") Then
+
+                            ReqSheet.Cells(mapcol, 5).Value = "Invalid vaue at Backend"
+
+                        End If
+
+                        If (ReqSheet.Cells(mapcol, 2).Value IsNot
+
+                            "N" And ReqSheet.Cells(mapcol, 4).Value = "false") Then
+
+                            ReqSheet.Cells(mapcol, 5).Value = "Invalid vaue at ESB"
+
+                        End If
+
+                    End If
+
+                End If
+
+            End If
+
+ 
+
+            'DATE
+
+ 
+
+        Next
+
+ 
+
+        mappWorkbook.Save()
+
+        mappWorkbook.Close()
+
+        ResultSheet.Save()
+
+        ResultSheet.Close()
+
+        MsgBox("Mapping Validation is Successfull.Kindly proceed and check the result sheet")
+
+        End
+
+ 
+
+    End Sub
+
+ 
+
+    Private Sub XML_SelectedIndexChanged(sender As Object, e As EventArgs) Handles XML.SelectedIndexChanged
+
+ 
+
+    End Sub
+
+ 
+
+    Private Sub TextBox4_TextChanged(sender As Object, e As EventArgs) Handles TextBox4.TextChanged
+
+ 
+
+    End Sub
+
+End Class

@@ -1,0 +1,757 @@
+Imports System.Data.OleDb
+
+Public Class Form1
+    Public Property WorksheetFunction As Object
+
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+
+        Dim SvcNo, InpXMLPath, OutXMLPath, TestDataPath As String
+        Dim FilePathTp, FilePathRp As String
+        Dim iCounter As Integer
+        ' Dim Rng As Workbook
+        Dim lastCol As Integer
+        Dim inputXMLcountRow1 As Integer
+        Dim sheetnumber As Integer
+        Dim rowInstance As String
+        Dim inputXML As String
+        Dim layout As String
+
+        On Error GoTo err
+
+        SvcNo = serviceName.Text
+
+
+        TestDataPath = Label11.Text
+
+        FilePathTp = Label11.Text
+        sheetnumber = 1
+
+
+        For inputXMLcountRow1 = 4 To 14
+
+            inputXML = ESBxml.Text
+
+
+            If (inputXML <> "") Then
+                InpXMLPath = ESBxml.Text
+
+                ' InpXMLPath = InpXMLPath & "\" & inputXML
+            End If
+
+
+            Dim col
+            Dim oFS : oFS = CreateObject("Scripting.FileSystemObject")
+            Dim sFSpec : sFSpec = oFS.GetAbsolutePathName(InpXMLPath)
+            Dim objExcel : objExcel = CreateObject("Excel.Application")
+            'Dim objWorkbook: Set objWorkbook = objExcel.Workbooks.Add()
+            'objWorkbook.Activate
+            '-----------------------------------------------------------------------------------------------
+            'Copy file from template to destination location with new filename
+            Process.Start("Excel", FilePath.Text & "\" & "Template.xlsx")
+            'FileCopy FilePathTp & "\" & "Template.xlsx", TestDataPath & "\" & SvcNo & "_" & sheetnumber & "_Test_Data_Sheet.xlsx"
+
+            Dim objWorkBook
+            objWorkBook = Process.Start("Excel", TestDataPath & "\" & SvcNo & "_" & sheetnumber & "_Test_Data_Sheet.xlsx")
+            '  Workbooks(SvcNo & "_" & sheetnumber & "_Test_Data_Sheet.xlsx").Activate
+            Dim wrksheet : wrksheet = objWorkBook.Sheets("INPUT")
+
+            '-----------------------------------------------------------------------------------------------
+
+            Dim oXML : oXML = CreateObject("Msxml2.DOMDocument.6.0")
+            oXML.Load(sFSpec)
+
+            col = 2
+            If 0 = oXML.parseError Then
+
+            Else
+                GoTo err
+            End If
+
+            recursiveTraversal(oXML.DocumentElement, 0, objExcel, objWorkBook, col)
+            'WScript.Echo "==============="
+            'WScript.Echo oXML.XML
+            '-------------------------------
+            ' code for removing blank columns
+            Dim value As String
+            Dim i, j As Integer
+            Dim value1 As String
+            j = 3
+
+            For i = 3 To 500
+
+                value = wrksheet.Cells(1, i)
+                If (value <> "") Then
+
+                    value1 = wrksheet.Cells(2, i)
+                    If (InStr(value, layout) > 0) Then
+
+                        wrksheet.Cells(1, j).value = value
+                        wrksheet.Cells(2, j).value = value1
+                        j = j + 1
+
+                    End If
+                End If
+
+            Next i
+            '-----------------------
+            ' code for removing duplicacy.
+            Dim y As Integer
+            y = j
+            wrksheet.Activate
+            For y = y To 500
+                wrksheet.Cells(1, y) = ""
+
+                wrksheet.Cells(2, y) = ""
+
+            Next y
+            '------------------------
+            '  Workbooks(SvcNo & "_" & sheetnumber & "_Test_Data_Sheet.xlsx").Save
+
+            sheetnumber = sheetnumber + 1
+            objWorkBook.Close
+            'inputXMLcountRow1 = inputXMLcountRow1 + 1
+            'lastCol = objWorkBook.Sheets("INPUT").Cells(1, Columns.Count).End(xlToLeft).Column
+            'For iCounter = 0 To lastCol
+            'If objWorkBook.Sheets("INPUT").Range("A" & iCounter).Value = "" Then
+            ' objWorkBook.Sheets("INPUT").Range("A" & iCounter).Delete
+            ' End If
+            'Next iCounter
+
+
+            'objWorkBook.Activate
+
+            'Dim c As Long, lastCol As Long, r As Range
+            'lastCol = objWorkBook.UsedRange.Columns(objWorkBook.UsedRange.Columns.Count).Column
+            'For c = lastCol To 1 Step -1
+            'Set r = Range(Cells(1, c), Cells(1000, c))
+            'If WorksheetFunction.CountA(Range(r.Rows(1), r.Rows(r.Rows.Count))) = 0 Then
+            'Columns(c).Delete
+            'End If
+            'Next
+            'objWorkBook.Close
+            'oXML.Save (OutXMLPath & "\" & SvcNo & ".xml")
+        Next inputXMLcountRow1
+        MsgBox("*** Test Data Sheets Generated Successfully ***")
+
+        comparison()
+
+        Exit Sub
+        '--------------------------------------------------------------------------------------------
+err:
+        'Display the error message in Status bar
+        ' Application.SetUnhandledExceptionMode = Err.Description
+        MsgBox("Macro stopped due to following error: ")
+
+
+    End Sub
+
+
+
+
+    Sub recursiveTraversal(oElm, nIndent, objExcel, objWorkBook, col)
+        If oElm.NodeType = 3 Then
+            col = col + 1
+            'WScript.Echo Space(nIndent), oElm.Text
+            Dim wrksheet : wrksheet = objWorkBook.Sheets("INPUT")
+
+
+
+            'If (oElm.ParentNode.tagName <> "value" And oElm.ParentNode.tagName <> "name") Then
+            'wrksheet.Cells(1, col) = oElm.ParentNode.tagName
+            ' wrksheet.Cells(1, col).WrapText = True
+
+            'wrksheet.Cells(2, col).NumberFormat = "@"
+            ' wrksheet.Cells(2, col) = oElm.Text
+            ' wrksheet.Cells(2, col).WrapText = True
+
+            ' If (IsDate(wrksheet.Cells(2, col))) Then
+            ' wrksheet.Cells(2, col).NumberFormat = "yyyy-mm-dd;@"
+
+            ' End If
+
+            ' End If
+
+
+            If (oElm.ParentNode.tagName = "name") Then
+                'wrksheet.Cells(1, col) = oElm.ParentNode.tagName
+                'wrksheet.Cells(1, col).WrapText = True
+
+                wrksheet.Cells(1, col).NumberFormat = "@"
+                wrksheet.Cells(1, col) = oElm.Text
+
+                wrksheet.Cells(1, col).WrapText = True
+
+                If (IsDate(wrksheet.Cells(1, col))) Then
+                    wrksheet.Cells(1, col).NumberFormat = "yyyy-mm-dd;@"
+
+                End If
+
+            End If
+
+            If (oElm.ParentNode.tagName = "value") Then
+                'wrksheet.Cells(1, col) = oElm.ParentNode.tagName
+                'wrksheet.Cells(2, col - 1).WrapText = True
+
+                wrksheet.Cells(2, col - 1).NumberFormat = "@"
+                wrksheet.Cells(2, col - 1) = oElm.Text
+                wrksheet.Cells(2, col - 1).WrapText = True
+
+                If (IsDate(wrksheet.Cells(2, col - 1))) Then
+                    wrksheet.Cells(2, col - 1).NumberFormat = "yyyy-mm-dd;@"
+
+                End If
+
+            End If
+
+
+            'oElm.Text = "{{" & oElm.ParentNode.tagName & "}}"
+
+
+        Else
+            'WScript.Echo Space(nIndent), oElm.tagName
+            If 0 < oElm.ChildNodes.Length Then
+                Dim oChild
+                For Each oChild In oElm.ChildNodes
+                    recursiveTraversal(oChild, nIndent + 2, objExcel, objWorkBook, col)
+                Next
+            End If
+        End If
+
+    End Sub
+
+
+    Private Sub BrowseBtn_Click(sender As Object, e As EventArgs) Handles BrowseBtn.Click
+        OpenFileDialog1.ShowDialog()
+        FilePath.Text = OpenFileDialog1.FileName
+        Process.Start("notepad", FilePath.Text)
+    End Sub
+
+    Private Sub CloseApp_Click(sender As Object, e As EventArgs) Handles CloseApp.Click
+        Close()
+    End Sub
+
+    Private Sub Button4_Click(sender As Object, e As EventArgs) Handles Button4.Click
+        OpenFileDialog2.ShowDialog()
+        ESBxml.Text = OpenFileDialog2.FileName
+        Process.Start("Excel", ESBxml.Text)
+    End Sub
+
+    Sub comparison()
+
+        Dim DEMIsheet As 
+        Dim demi As String
+        Dim SvcNo, InpXMLPath, OutXMLPath As String
+        Dim ESBsheet As Workbook
+        Dim ESB As String
+        Dim SMsheet As Workbook
+        Dim SM As String
+
+        Dim mappingSheet As Workbook
+        Dim mapping As String
+        Dim reqcount As Integer
+        Dim sheetName As String
+        Dim FilePathTp As String
+        Dim TestDataPath As String
+        Dim sheetnumber As Integer
+        SvcNo = serviceName.Text
+        sheetnumber = 1
+        For reqcount = 1 To 2
+
+            If (sheetnumber > 4) Then
+                sheetnumber = 2
+            End If
+
+            demi = Sheet1.Range("D7")
+            demi = demi & "\" & SvcNo & "_" & sheetnumber & "_Test_Data_Sheet.xlsx"
+            ESB = Sheet1.Range("D7")
+            sheetnumber = sheetnumber + 2
+            ESB = ESB & "\" & SvcNo & "_" & sheetnumber & "_Test_Data_Sheet.xlsx"
+            SM = Sheet1.Range("D7")
+            sheetnumber = sheetnumber + 2
+            SM = SM & "\" & SvcNo & "_" & sheetnumber & "_Test_Data_Sheet.xlsx"
+            mapping = mapDoc.Text
+            FilePathTp = Label1.Text
+            TestDataPath = Label1.Text
+            '-----------------------------------------------------------------------------------------------
+            'Copy file from template to destination location with new filename
+
+            If (reqcount = 1) Then
+                FileCopy FilePathTp & "\" & "Template2.xlsx", TestDataPath & "\" & "Request" & "_" & "Mapping Result.xlsx"
+
+Dim objWorkBook : objWorkBook = Workbooks.Open(TestDataPath & "\" & "Request" & "_" & "Mapping Result.xlsx")
+                Workbooks("Request" & "_" & "Mapping Result.xlsx").Activate
+
+            ElseIf (reqcount = 2) Then
+
+                FileCopy FilePathTp & "\" & "Template2.xlsx", TestDataPath & "\" & "Response" & "_" & "Mapping Result.xlsx"
+
+ objWorkBook = Workbooks.Open(TestDataPath & "\" & "Response" & "_" & "Mapping Result.xlsx")
+                Workbooks("Response" & "_" & "Mapping Result.xlsx").Activate
+            End If
+
+            '-----------------------------------------------------------------------------------------------
+            'transposing the row data into column data
+
+
+            ' DEMIsheet = Workbooks.Open(demi)
+            Dim sizeDEMI As Integer
+
+
+            CopyTransposed(DEMIsheet.Sheets("INPUT").Range("A1:ZZ200"), DEMIsheet.Sheets("OUTPUT").Range("A1"))
+            'counting the no of cloumns
+            DEMIsheet.Save
+
+            sizeDEMI = WorksheetFunction.CountA(DEMIsheet.Sheets("OUTPUT").Columns(1))
+
+
+            'ESBsheet = Workbooks.Open(ESB)
+            Dim sizeESB As Integer
+            'sizeESB = WorksheetFunction.CountA(ESBsheet.Sheets("INPUT").Rows(1))
+            CopyTransposed(ESBsheet.Sheets("INPUT").Range("A1:ZZ200"), ESBsheet.Sheets("OUTPUT").Range("A1"))
+            sizeESB = WorksheetFunction.CountA(ESBsheet.Sheets("OUTPUT").Columns(1))
+
+            'SMsheet = Workbooks.Open(SM)
+            Dim sizeSM As Integer
+            'sizemap = WorksheetFunction.CountA(mappingSheet.Sheets(sheetName).Columns(1)) = WorksheetFunction.CountA(SMsheet.Sheets("INPUT").Rows(1))
+            CopyTransposed (SMsheet.Sheets("INPUT").Range("A1:ZZ200"), SMsheet.Sheets("OUTPUT").Range("A1"))
+
+sizeSM = WorksheetFunction.CountA(SMsheet.Sheets("OUTPUT").Columns(1))
+
+
+            sheetName = Sheet1.Range("D17")
+            ' mappingSheet = Workbooks.Open(mapping)
+            'counting no of rows
+            Dim sizemap As Integer
+            sizemap = WorksheetFunction.CountA(mappingSheet.Sheets(sheetName).Columns(1))
+
+            '---------------------------------------------------------
+            'fetching the fields in mapping results
+
+            Dim sheetcol As Integer
+            Dim mapcol As Integer
+            Dim lnRow As Integer, lnCol As Integer
+
+            'for DEMI
+            lnRow = 2
+            lnCol = mappingSheet.Sheets(sheetName).Cells(lnRow, 1).EntireRow.Find(What:="Field Name", LookIn:=xlValues, SearchDirection:=xlNext, MatchCase:=False).Column
+            For mapcol = 3 To sizemap + 1
+                lnRow = lnRow + 1
+                objWorkBook.Sheets("Comparison results").Cells(mapcol - 1, 1).value = mappingSheet.Sheets(sheetName).Cells(lnRow, lnCol).value
+            Next mapcol
+
+            'for ESB
+            lnRow = 2
+            lnCol = mappingSheet.Sheets(sheetName).Cells(lnRow, 1).EntireRow.Find(What:="Transformation/Rule", LookIn:=xlValues, SearchDirection:=xlNext, MatchCase:=False).Column
+            For mapcol = 3 To sizemap + 1
+                lnRow = lnRow + 1
+                objWorkBook.Sheets("Comparison results").Cells(mapcol - 1, 3).value = mappingSheet.Sheets(sheetName).Cells(lnRow, lnCol + 1).value
+            Next mapcol
+
+
+            'for SM
+            lnRow = 2
+            lnCol = mappingSheet.Sheets(sheetName).Cells(lnRow, 1).EntireRow.Find(What:="SDS dictionary Name", LookIn:=xlValues, SearchDirection:=xlNext, MatchCase:=False).Column
+            For mapcol = 3 To sizemap + 1
+                lnRow = lnRow + 1
+                objWorkBook.Sheets("Comparison results").Cells(mapcol - 1, 5).value = mappingSheet.Sheets(sheetName).Cells(lnRow, lnCol).value
+            Next mapcol
+
+            '----------------------------------------------------------
+            'Handling multiple values and not found fields
+            Dim counter1 As Integer
+            Dim counter2 As Integer
+            Dim counter3 As Integer
+            Dim multi1 As Integer
+            Dim multi2 As Integer
+            Dim multi3 As Integer
+            Dim nextrow As Integer
+            Dim map As String
+            Dim flag As Boolean
+            flag = True
+            multi1 = 1
+            multi2 = 1
+            multi3 = 1
+
+            '---------------------------------------
+            'finding the last row
+
+            'Dim lRow As Long
+            '
+            'DEMIsheet.Activate
+            'With ActiveSheet
+
+            'Row = Cells.Find(What:="", After:=Range("A1"), LookAt:=xlPart, LookIn:=xlFormulas, SearchOrder:=xlByRows, SearchDirection:=xlPrevious, MatchCase:=False).Row
+            'lRow = Cells(Rows.Count, "A").End(xlUp).Row
+            'End With
+
+            'lRow = DEMIsheet.Sheets("OUTPUT").Cells(1, col).EntireColumn.Find(What:=" ", LookIn:=xlValues, SearchDirection:=xlNext, MatchCase:=False).Row
+            '-------------------------------------
+
+            For mapcol = 2 To sizemap
+                For sheetcol = 3 To sizeDEMI
+
+
+                    'for demi
+                    Dim demifield As String
+
+
+                    demifield = DEMIsheet.Sheets("OUTPUT").Range("A" & sheetcol).value
+                    If (InStr(objWorkBook.Sheets("Comparison results").Range("A" & mapcol).value, demifield) > 0) Then
+
+                        counter1 = counter1 + 1
+
+                        If counter1 > 1 Then
+
+                            'demifield = demifield & "_" & counter1
+
+                            multi1 = multi1 + 1
+                            objWorkBook.Sheets("Multiple Occurance").Range("A" & multi1).value = demifield
+                            'DEMIsheet.Sheets("OUTPUT").Range("A" & multi1).Value = demifield
+
+
+                            'lnCol = 1
+                            'lnRow = DEMIsheet.Sheets("OUTPUT").Cells(1, lnCol).EntireColumn.Find(What:=demifield & "_" & counter1, LookIn:=xlValues, SearchDirection:=xlNext, MatchCase:=False).Row
+                            objWorkBook.Sheets("Multiple Occurance").Range("B" & multi1).value = DEMIsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+
+                        End If
+
+                    Else
+                        If (InStr(objWorkBook.Sheets("Comparison results").Range("A" & mapcol).value, demifield) < 0 Or InStr(objWorkBook.Sheets("Comparison results").Range("A" & mapcol).value, demifield) = 0) Then
+                            For nextrow = 2 To sizemap + 1
+                                flag = True
+                                If (InStr(DEMIsheet.Sheets("OUTPUT").Range("A" & sheetcol).value, objWorkBook.Sheets("Comparison results").Range("A" & nextrow).value) > 0) Then
+
+                                    If (InStr(DEMIsheet.Sheets("OUTPUT").Range("A" & sheetcol).value, sheetName) > 0 And mapcol = 2) Then
+                                        multi1 = multi1 + 1
+
+                                        objWorkBook.Sheets("Multiple Occurance").Range("A" & multi1).value = demifield
+                                        objWorkBook.Sheets("Multiple Occurance").Range("B" & multi1).value = DEMIsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+                                        flag = False
+                                        nextrow = sizemap + 1
+                                    ElseIf (mapcol = 2) Then
+                                        objWorkBook.Sheets("Fields not found").Range("A" & sheetcol).value = demifield
+                                        ' objWorkBook.Sheets("Fields not found").Range("A" & sheetcol).value = objWorkBook.Sheets("Comparison results").Range("A" & mapcol).value
+                                    End If
+
+                                End If
+                            Next nextrow
+                            If (flag = True And mapcol = 2) Then
+                                objWorkBook.Sheets("Fields not found").Range("A" & sheetcol).value = demifield
+                                ' objWorkBook.Sheets("Fields not found").Range("A" & sheetcol).value = objWorkBook.Sheets("Comparison results").Range("A" & mapcol).value
+                            End If
+                        End If
+
+
+                    End If
+
+
+                    'for ESB
+                    Dim ESBfield As String
+
+                    ESBfield = ESBsheet.Sheets("OUTPUT").Range("A" & sheetcol).value
+                    If (InStr(objWorkBook.Sheets("Comparison results").Range("C" & mapcol).value, ESBfield) > 0) Then
+
+                        counter2 = counter2 + 1
+
+                        If counter2 > 1 Then
+
+                            'ESBfield = ESBfield & "_" & counter2
+                            multi2 = multi2 + 1
+                            objWorkBook.Sheets("Multiple Occurance").Range("C" & multi2).value = ESBfield
+                            'ESBsheet.Sheets("OUTPUT").Range("A" & multi2).Value = ESBfield
+                            'lnCol = 1
+                            'lnRow = objWorkBook.Sheets("Comparion results").Cells(1, lnCol).EntireColumn.Find(What:=ESBfield, LookIn:=xlValues, SearchDirection:=xlNext, MatchCase:=False).Row
+
+                            objWorkBook.Sheets("Multiple Occurance").Range("D" & multi2).value = ESBsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+
+                        End If
+
+                    Else
+                        If (InStr(objWorkBook.Sheets("Comparison results").Range("C" & mapcol).value, ESBfield) < 0 Or InStr(objWorkBook.Sheets("Comparison results").Range("C" & mapcol).value, ESBfield) = 0) Then
+                            For nextrow = 2 To sizemap + 1
+                                flag = True
+                                If (InStr(ESBsheet.Sheets("OUTPUT").Range("A" & sheetcol).value, objWorkBook.Sheets("Comparison results").Range("C" & nextrow).value) > 0) Then
+                                    '  objWorkBook.Sheets("Comparison results").Range("C" & mapcol).Interior.Color = vbYellow
+                                    If (InStr(ESBsheet.Sheets("OUTPUT").Range("A" & sheetcol).value, sheetName) > 0 And mapcol = 2) Then
+
+                                        multi2 = multi2 + 1
+
+                                        objWorkBook.Sheets("Multiple Occurance").Range("C" & multi2).value = ESBfield
+                                        objWorkBook.Sheets("Multiple Occurance").Range("D" & multi2).value = ESBsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+                                        flag = False
+                                        nextrow = sizemap + 1
+                                    ElseIf (mapcol = 2) Then
+                                        objWorkBook.Sheets("Fields not found").Range("B" & sheetcol).value = ESBfield
+                                    End If
+                                End If
+                            Next nextrow
+                            If (flag = True And mapcol = 2) Then
+                                objWorkBook.Sheets("Fields not found").Range("B" & sheetcol).value = ESBfield
+                                '  objWorkBook.Sheets("Fields not found").Range("B" & sheetcol).value = objWorkBook.Sheets("Comparison results").Range("C" & mapcol).value
+                            End If
+                        End If
+
+                    End If
+
+
+
+                    'For SM
+                    Dim SMfield As String
+
+                    SMfield = SMsheet.Sheets("OUTPUT").Range("A" & sheetcol).value
+                    If (InStr(objWorkBook.Sheets("Comparison results").Range("E" & mapcol).value, SMfield) > 0) Then
+
+                        counter3 = counter3 + 1
+
+                        If counter3 > 1 Then
+                            'objWorkBook.Sheets("Comparison results").Range("E" & mapcol).Interior.Color = vbYellow
+                            ' SMfield = SMfield & "_" & counter3
+                            multi3 = multi3 + 1
+                            objWorkBook.Sheets("Multiple Occurance").Range("E" & multi3).value = SMfield
+                            'SMsheet.Sheets("OUTPUT").Range("A" & multi3).Value = SMfield
+                            'lnCol = 1
+                            'lnRow = objWorkBook.Sheets("Comparion results").Cells(1, lnCol).EntireColumn.Find(What:=ESBfield, LookIn:=xlValues, SearchDirection:=xlNext, MatchCase:=False).Row
+                            objWorkBook.Sheets("Multiple Occurance").Range("F" & multi3).value = SMsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+                        End If
+
+                    Else
+                        If (InStr(objWorkBook.Sheets("Comparison results").Range("E" & mapcol).value, SMfield) < 0 Or InStr(objWorkBook.Sheets("Comparison results").Range("E" & mapcol).value, SMfield) = 0) Then
+                            For nextrow = 2 To sizemap + 1
+                                flag = True
+                                If (InStr(SMsheet.Sheets("OUTPUT").Range("A" & sheetcol).value, objWorkBook.Sheets("Comparison results").Range("E" & nextrow).value) > 0) Then
+                                    ' objWorkBook.Sheets("Comparison results").Range("E" & mapcol).Interior.Color = vbYellow
+                                    If (InStr(SMsheet.Sheets("OUTPUT").Range("A" & sheetcol).value, sheetName) > 0 And mapcol = 2) Then
+                                        multi3 = multi3 + 1
+
+                                        objWorkBook.Sheets("Multiple Occurance").Range("E" & multi3).value = SMfield
+                                        objWorkBook.Sheets("Multiple Occurance").Range("F" & multi3).value = SMsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+                                        flag = False
+                                        nextrow = sizemap + 1
+                                    ElseIf (mapcol = 2) Then
+                                        objWorkBook.Sheets("Fields not found").Range("C" & sheetcol).value = SMfield
+                                    End If
+                                End If
+                            Next nextrow
+                            If (flag = True And mapcol = 2) Then
+
+                                objWorkBook.Sheets("Fields not found").Range("C" & sheetcol).value = SMfield
+                                ' objWorkBook.Sheets("Fields not found").Range("C" & sheetcol).value = SMsheet.Sheets("OUTPUT").Range("A" & sheetcol).value
+                            End If
+                        End If
+
+                    End If
+
+
+                Next sheetcol
+
+                counter1 = 0
+                counter2 = 0
+                counter3 = 0
+
+            Next mapcol
+
+            '----------------------------------------------------------
+            'removing blank row
+            Dim x As Long
+
+            objWorkBook.Activate
+            For x = objWorkBook.Sheets("Fields not found").Cells.SpecialCells(xlCellTypeLastCell).Row To 1 Step -1
+                If WorksheetFunction.CountA(objWorkBook.Sheets("Fields not found").Rows(x)) = 0 Then
+                    objWorkBook.Sheets("Fields not found").Rows(x).Delete
+                End If
+            Next
+            'removing blank from multiple occurance
+
+            objWorkBook.Activate
+            For x = objWorkBook.Sheets("Multiple Occurance").Cells.SpecialCells(xlCellTypeLastCell).Row To 1 Step -1
+                If WorksheetFunction.CountA(objWorkBook.Sheets("Multiple Occurance").Rows(x)) = 0 Then
+                    objWorkBook.Sheets("Multiple Occurance").Rows(x).Delete
+                End If
+            Next
+            ' objWorkBook.Activate
+
+            'For x = objWorkBook.Sheets("Fields not found").Cells.SpecialCells(xlCellTypeLastCell).Row To 1 Step -1
+            'If WorksheetFunction.CountA(objWorkBook.Sheets("Fields not found").Rows(x)) = 0 Then
+            'objWorkBook.Sheets("Fields not found").Rows(x).Delete
+            'End If
+            ' Next
+
+
+
+            '---------------------------------------------------------
+            'single occurance mapping
+            For mapcol = 2 To sizemap
+                For sheetcol = 3 To sizeDEMI
+
+
+                    demifield = DEMIsheet.Sheets("OUTPUT").Range("A" & sheetcol).value
+                    If (InStr(objWorkBook.Sheets("Comparison results").Range("A" & mapcol).value, demifield) > 0) Then
+                        counter1 = counter1 + 1
+                        If (counter1 = 1) Then
+                            objWorkBook.Sheets("Comparison results").Range("B" & mapcol).value = DEMIsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+                        End If
+
+                    End If
+
+
+                    ESBfield = ESBsheet.Sheets("OUTPUT").Range("A" & sheetcol).value
+                    If (InStr(objWorkBook.Sheets("Comparison results").Range("C" & mapcol).value, ESBfield) > 0) Then
+                        counter2 = counter2 + 1
+                        If (counter2 = 1) Then
+                            objWorkBook.Sheets("Comparison results").Range("D" & mapcol).value = ESBsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+
+                        End If
+
+                    End If
+
+
+                    SMfield = SMsheet.Sheets("OUTPUT").Range("A" & sheetcol).value
+                    If (InStr(objWorkBook.Sheets("Comparison results").Range("E" & mapcol).value, SMfield) > 0) Then
+                        counter3 = counter3 + 1
+                        If (counter3 = 1) Then
+                            objWorkBook.Sheets("Comparison results").Range("F" & mapcol).value = SMsheet.Sheets("OUTPUT").Range("B" & sheetcol).value
+                        End If
+
+                    End If
+
+                Next sheetcol
+                counter1 = 0
+                counter2 = 0
+                counter3 = 0
+            Next mapcol
+
+            sheetcol = 0
+            '---------------------------------------------------------------------------
+            '-------------------------------------------------------
+            'Multiple occurance
+            ' Dim mul As Integer
+
+            'For mapcol = 2 To sizemap
+            'For mul = 0 To 100
+            'If (InStr(objWorkBook.Sheets("Comparison results").Range("A" & mapcol).value, objWorkBook.Sheets("Multiple Occurance").Range("A" & mul).value) > 0) Then
+            'objWorkBook.Sheets("Comparison results").Range("A" & mapcol).Interior.Color = vbYellow
+            ' objWorkBook.Sheets("Comparison results").Range("C" & mapcol).Interior.Color = vbYellow
+            'objWorkBook.Sheets("Comparison results").Range("E" & mapcol).Interior.Color = vbYellow
+            'End If
+            ' Next mapcol
+            '---------------------------------------------------------------------------
+            'comparing the values for single
+
+            For mapcol = 2 To sizemap
+                'dvalue = mappingSheet.Sheets(sheetName).Range("D" & mapcol).Value
+                'gvalue = mappingSheet.Sheets(sheetName).Range("G" & mapcol).Value
+                'nvlaue = mappingSheet.Sheets(sheetName).Range("N" & mapcol).Value
+
+                If (objWorkBook.Sheets("Comparison results").Range("B" & mapcol).value <> "") Then
+                    If (objWorkBook.Sheets("Comparison results").Range("D" & mapcol).value <> "") Then
+                        If (objWorkBook.Sheets("Comparison results").Range("F" & mapcol).value <> "") Then
+
+
+                            If (objWorkBook.Sheets("Comparison results").Range("B" & mapcol).value = objWorkBook.Sheets("Comparison results").Range("D" & mapcol).value) Then
+                                If (objWorkBook.Sheets("Comparison results").Range("D" & mapcol).value = objWorkBook.Sheets("Comparison results").Range("F" & mapcol).value) Then
+
+                                    objWorkBook.Sheets("Comparison results").Range("G" & mapcol).value = "MAPPED CORRECTLY"
+                                    objWorkBook.Sheets("Comparison results").Range("G" & mapcol).Interior.Color = vbGreen
+                                Else
+                                    objWorkBook.Sheets("Comparison results").Range("G" & mapcol).value = "MAPPING ISSUE"
+                                    objWorkBook.Sheets("Comparison results").Range("G" & mapcol).Interior.Color = vbRed
+                                End If
+                            Else
+                                objWorkBook.Sheets("Comparison results").Range("G" & mapcol).value = "MAPPING ISSUE"
+                                objWorkBook.Sheets("Comparison results").Range("G" & mapcol).Interior.Color = vbRed
+                            End If
+
+
+                        End If
+                    End If
+                End If
+
+                If (objWorkBook.Sheets("Comparison results").Range("B" & mapcol).value = "") Then
+                    If (objWorkBook.Sheets("Comparison results").Range("D" & mapcol).value = "") Then
+                        If (objWorkBook.Sheets("Comparison results").Range("F" & mapcol).value = "") Then
+
+                            objWorkBook.Sheets("Comparison results").Range("G" & mapcol).value = "MAPPED CORRECTLY(BLANK)"
+                            objWorkBook.Sheets("Comparison results").Range("G" & mapcol).Interior.Color = vbGreen
+
+                        End If
+                    End If
+                End If
+
+            Next mapcol
+
+            '-----------------------------------------------------------------------------------
+            ' for multiple occurance
+            '-----------
+            'code to find last row
+            Dim last As Integer
+            Dim cnt As Integer
+            cnt = 0
+            For last = 1 To 1000
+                If (objWorkBook.Sheets("Multiple Occurance").Range("A" & last).value <> "") Then
+                    cnt = cnt + 1
+
+                End If
+            Next last
+
+
+
+            '-----------
+            For mapcol = 2 To cnt
+                'dvalue = mappingSheet.Sheets(sheetName).Range("D" & mapcol).Value
+                'gvalue = mappingSheet.Sheets(sheetName).Range("G" & mapcol).Value
+                'nvlaue = mappingSheet.Sheets(sheetName).Range("N" & mapcol).Value
+                If (objWorkBook.Sheets("Multiple Occurance").Range("A" & mapcol).value <> "") Then
+
+                    If (objWorkBook.Sheets("Multiple Occurance").Range("B" & mapcol).value = objWorkBook.Sheets("Multiple Occurance").Range("D" & mapcol).value) Then
+                        If (objWorkBook.Sheets("Multiple Occurance").Range("D" & mapcol).value = objWorkBook.Sheets("Multiple Occurance").Range("F" & mapcol).value) Then
+
+                            objWorkBook.Sheets("Multiple Occurance").Range("G" & mapcol).value = "MAPPED CORRECTLY"
+                            objWorkBook.Sheets("Multiple Occurance").Range("G" & mapcol).Interior.Color = vbGreen
+                        Else
+                            objWorkBook.Sheets("Multiple Occurance").Range("G" & mapcol).value = "MAPPING ISSUE"
+                            objWorkBook.Sheets("Multiple Occurance").Range("G" & mapcol).Interior.Color = vbRed
+                        End If
+                    Else
+                        objWorkBook.Sheets("Multiple Occurance").Range("G" & mapcol).value = "MAPPING ISSUE"
+                        objWorkBook.Sheets("Multiple Occurance").Range("G" & mapcol).Interior.Color = vbRed
+                    End If
+
+
+                End If
+
+                If (objWorkBook.Sheets("Multiple Occurance").Range("B" & mapcol).value = "") Then
+                    If (objWorkBook.Sheets("Multiple Occurance").Range("D" & mapcol).value = "") Then
+                        If (objWorkBook.Sheets("Multiple Occurance").Range("F" & mapcol).value = "") Then
+
+                            objWorkBook.Sheets("Comparison results").Range("G" & mapcol).value = "MAPPED CORRECTLY(BLANK)"
+                            objWorkBook.Sheets("Comparison results").Range("G" & mapcol).Interior.Color = vbGreen
+
+                        End If
+                    End If
+                End If
+
+            Next mapcol
+            If (reqcount = 1) Then
+                Workbooks("Request" & "_" & "Mapping Result.xlsx").Save
+            ElseIf (reqcount = 2) Then
+                Workbooks("Response" & "_" & "Mapping Result.xlsx").Save
+            End If
+        Next reqcount
+
+        MsgBox(*** mapping Validation Successfully Completed  ***)
+    End Sub
+
+    Private Function xlNext() As Object
+        Throw New NotImplementedException()
+    End Function
+
+    Private Function xlValues() As Object
+        Throw New NotImplementedException()
+    End Function
+
+    Sub CopyTransposed(rngSource As Range, rngTargetCell As Range)
+        rngTargetCell.Resize(rngSource.Columns.Count, rngSource.Rows.Count).value =
+        Application.WorksheetFunction.Transpose(rngSource)
+    End Sub
+
+End Class
